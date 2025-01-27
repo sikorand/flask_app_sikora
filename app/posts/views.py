@@ -1,54 +1,68 @@
 from . import post_bp
-from flask import request, current_app,render_template, abort, flash,redirect, url_for
+from flask import request, render_template, abort, flash, redirect, url_for
 from app.posts.forms import PostForm
-import json
-import os
-#posts = [
-#    {"id": 1, 'title': 'My First Post', 'content': 'This is the content of my first post.', 'author': 'John Doe'},
-#    {"id": 2, 'title': 'Another Day', 'content': 'Today I learned about Flask macros.', 'author': 'Jane Smith'},
-#    {"id": 3, 'title': 'Flask and Jinja2', 'content': 'Jinja2 is powerful for templating.', 'author': 'Mike Lee'}
-#] 
-POSTS_FILE_PATH = 'app/posts/posts.json'
+from app import db  # Імпортуємо об'єкт бази даних із вашої програми
+from app.posts.models import Post  # Імпортуємо модель Post
 
-
-
-def load_posts():
-    if os.path.exists(POSTS_FILE_PATH):
-        with open(POSTS_FILE_PATH, 'r') as file:
-            return json.load(file)
-    return []
-
-# Збереження постів у JSON-файл
-def save_posts(posts):
-    with open(POSTS_FILE_PATH, 'w') as file:
-        json.dump(posts, file, indent=4)
-
-@post_bp.route('/') 
+@post_bp.route('/')
 def get_posts():
-    posts = load_posts()
+    # Отримання всіх постів, відсортованих за датою публікації (спадання)
+    posts = Post.query.order_by(Post.posted.desc()).all()
     return render_template("posts.html", posts=posts)
+
 
 @post_bp.route('/<int:id>')
 def detail_post(id):
-    posts = load_posts()
-    # Перевірка, чи існує пост із даним ID
-    post = next((post for post in posts if post["id"] == id), None)
-    if post is None:
-        abort(404)
+    # Знайти пост за ID
+    post = Post.query.get_or_404(id)  # Отримуємо пост або 404, якщо не знайдено
     return render_template("detail_post.html", post=post)
 
 
-@post_bp.route('/add_post',methods=['GET','POST'])
+@post_bp.route('/add_post', methods=['GET', 'POST'])
 def add_post():
-    form = PostForm
-    if form.validate_on.data:
-        title = form.title.data
-        content = form.content.data
-        flash('Post added successfully!','success')
-        return redirect(url_for('add_post'))
+    form = PostForm()
+    if form.validate_on_submit():
+        # Створюємо новий пост на основі даних форми
+        new_post = Post(
+            title=form.title.data,
+            content=form.content.data,
+            author="Admin"  # Заміна на поточного користувача, якщо використовується аутентифікація
+        )
+        db.session.add(new_post)
+        db.session.commit()  # Зберігаємо зміни в базі даних
+        flash('Post added successfully!', 'success')
+        return redirect(url_for('posts.get_posts'))
     return render_template('add_post.html', form=form)
+
+
+@post_bp.route('/delete/<int:id>', methods=['GET','POST'])
+def delete_post(id):
+    post = Post.query.get_or_404(id)  
+    db.session.delete(post)  
+    db.session.commit()  
+
+    flash('Post has been deleted successfully!', 'success') 
+    return redirect(url_for('posts.get_posts'))  
+
+@post_bp.route('/edit/<int:post_id>', methods=['GET', 'POST'])
+def edit_post(post_id):
+    post = Post.query.get_or_404(post_id)  # Знайти пост по id
+    form = PostForm(obj=post)  # Створити форму з даними поста
+
+    if form.validate_on_submit():  # Якщо форма валідна і відправлена
+        post.title = form.title.data
+        post.content = form.content.data
+        post.author = form.author.data  # Оновлення автора
+        post.category = form.category.data  # Оновлення категорії
+        post.posted = form.publish_date.data  # Оновлення дати публікації
+
+        db.session.commit()  # Збереження змін у базі даних
+        flash('Post updated successfully!', 'success')  # Повідомлення про успіх
+        return redirect(url_for('posts.get_posts'))  # Перехід до списку постів
+
+    return render_template('edit_post.html', form=form, post=post)  # Передача поста в шаблон
+
 
 @post_bp.errorhandler(404)
 def page_not_found(error):
-# Відображаємо шаблон 404.html і повертаємо статусний код 404
     return render_template('404.html'), 404

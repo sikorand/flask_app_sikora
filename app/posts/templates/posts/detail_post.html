@@ -4,10 +4,15 @@
 
 {% block content %}
 
-    <h1>Post № {{post["id"]}} - {{post["title"]}} </h1>
+    <h1>Post № {{ post.id }} - {{ post.title }}</h1>
+    <p><strong>Category:</strong> {{ post.category }}</p>
+    <p>{{ post.content }}</p>
 
-    <p>{{ post.get('content') }}</p>
-
-    <a href="{{ url_for('posts.get_posts') }}">Return posts</a>
+    <p><strong>Author:</strong> {{ post.author }}</p>
+    <p><strong>Published on:</strong> {{ post.posted.strftime('%Y-%m-%d %H:%M') }}</p>
+    <form action="{{ url_for('posts.delete_post', id=post.id) }}" method="POST">
+        <button type="submit" class="btn btn-danger">Delete Post</button>
+    </form>
+    <a href="{{ url_for('posts.get_posts') }}">Return to all posts</a>
 
 {% endblock %}
