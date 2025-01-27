@@ -3,6 +3,7 @@ from flask import request, render_template, abort, flash, redirect, url_for
 from app.posts.forms import PostForm
 from app import db  # Імпортуємо об'єкт бази даних із вашої програми
 from app.posts.models import Post  # Імпортуємо модель Post
+from app.users.models import User
 
 @post_bp.route('/')
 def get_posts():
@@ -18,20 +19,34 @@ def detail_post(id):
     return render_template("detail_post.html", post=post)
 
 
+from app.posts.models import Tag
+
 @post_bp.route('/add_post', methods=['GET', 'POST'])
 def add_post():
     form = PostForm()
+    authors = User.query.all()
+    tags = Tag.query.all()  # Отримання всіх тегів з БД
+    form.author_id.choices = [(author.id, author.username) for author in authors]
+    form.tags.choices = [(tag.id, tag.name) for tag in tags]  # Заповнюємо поля для тегів
+    
     if form.validate_on_submit():
-        # Створюємо новий пост на основі даних форми
         new_post = Post(
             title=form.title.data,
             content=form.content.data,
-            author="Admin"  # Заміна на поточного користувача, якщо використовується аутентифікація
+            publish_date=form.publish_date.data,
+            category=form.category.data,
+            is_active=form.is_active.data,
+            author_id=form.author_id.data,
         )
+        for tag_id in form.tags.data:  # Додаємо теги до поста
+            tag = Tag.query.get(tag_id)
+            new_post.tags.append(tag)
+        
         db.session.add(new_post)
-        db.session.commit()  # Зберігаємо зміни в базі даних
+        db.session.commit()
         flash('Post added successfully!', 'success')
         return redirect(url_for('posts.get_posts'))
+    
     return render_template('add_post.html', form=form)
 
 

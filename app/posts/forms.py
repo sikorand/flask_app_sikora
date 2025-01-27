@@ -1,8 +1,8 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SubmitField, BooleanField,  DateField, SelectField
+from wtforms import SelectMultipleField,StringField, TextAreaField, SubmitField, BooleanField,  DateField, SelectField
 from wtforms.validators import DataRequired, Length
 from datetime import datetime
-
+from app.posts.models import Tag
 
 
 CATEGORIES = [('tech', 'Tech'), ('science', 'Science'), ('lifestyle', 'Lifestyle')]
@@ -14,5 +14,6 @@ class PostForm(FlaskForm):
     publish_date = DateField('Publish Date', format='%Y-%m-%dT%H:%M', default=datetime.now())
     author = StringField('Author', validators=[DataRequired()])
     category = SelectField('Category', choices=CATEGORIES,validators=[DataRequired()])
-
-    submit = SubmitField('Sumbit')
+    author_id = SelectField("Author",coerce=int)
+    tags = SelectMultipleField('Tags', coerce=int)
+    submit = SubmitField('Add Post')

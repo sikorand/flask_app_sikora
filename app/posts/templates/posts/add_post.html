@@ -22,12 +22,25 @@
     
     {{ render_field(form.category) }}
 
+    <!-- Поле для вибору автора -->
+    <div class="form-group">
+        <label for="{{ form.author_id.id }}">{{ form.author_id.label }}</label>
+        <select name="{{ form.author_id.name }}" id="{{ form.author_id.id }}" class="form-control">
+            {% for value, label in form.author_id.choices %}
+                <option value="{{ value }}" {% if form.author_id.data == value %} selected {% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
     <!-- Поле для активації поста -->
     <div class="form-group form-check">
         {{ form.is_active(class="form-check-input") }}
         {{ form.is_active.label(class="form-check-label") }}
     </div>
-
+    <div class="form-group">
+        <label for="{{ form.tags.id }}">{{ form.tags.label }}</label>
+        {{ form.tags(class="form-control") }}
+    </div>
     <!-- Кнопка для підтвердження -->
     <div class="form-group">
         <button type="submit" class="btn btn-primary">{{ 'Update Post' if form.title.data else 'Create Post' }}</button>
