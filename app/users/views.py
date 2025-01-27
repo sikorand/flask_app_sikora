@@ -2,11 +2,15 @@ from . import user_bp
 from flask import request, redirect, url_for, render_template, session, flash, make_response
 from datetime import timedelta, datetime
 from .forms import hash_password, check_password_hash
-from .forms import RegistrationForm,LoginForm
+from .forms import RegistrationForm,LoginForm, UpdateAccountForm, ChangePasswordForm
 from .models import User
 from app import db, bcrypt
 from flask_login import login_user,logout_user,current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+import os
+from flask_login import user_logged_in
+
 @user_bp.route('/')
 def main():
     return render_template("base.html")
@@ -77,10 +81,74 @@ def users_list():
 
     return render_template('users_list.html', users=users, title='Users List')
 
-@user_bp.route('/account')
+
+@user_bp.route('/account', methods=['GET', 'POST'])
 @login_required
 def account():
-    return render_template('account.html',user=current_user)
+    form = UpdateAccountForm(original_email=current_user.email)
+    password_form = ChangePasswordForm()
+
+    if form.validate_on_submit():
+        if form.picture.data:
+            picture_file = save_picture(form.picture.data)
+            current_user.image_file = picture_file
+        
+        current_user.username = form.username.data
+        current_user.email = form.email.data
+        current_user.about_me = form.about_me.data
+        db.session.commit()
+
+        flash('Your account has been updated!', 'success')
+        return redirect(url_for('users.account'))
+
+    # Зміна пароля
+    if password_form.validate_on_submit():
+        current_password = password_form.current_password.data
+        new_password = password_form.new_password.data
+
+    # Перевірка, чи введено поточний пароль
+        if current_password and check_password_hash(current_user.password, current_password):
+            # Якщо пароль вірний, хешуємо новий пароль
+            current_user.password = hash_password(new_password)
+            db.session.commit()
+            flash('Your password has been updated!', 'success')
+            return redirect(url_for('users.account'))
+        elif not current_password:
+            flash('Please enter your current password.', 'danger')
+        else:
+            flash('Current password is incorrect.', 'danger')
+
+
+
+
+    form.username.data = current_user.username
+    form.email.data = current_user.email
+    form.about_me.data = current_user.about_me
+
+    return render_template('account.html', form=form, password_form=password_form, user=current_user)
+from flask_login import user_logged_in
+
+@user_logged_in.connect
+def update_last_seen(sender, **kwargs):
+    user = kwargs.get('user')
+    if user:
+        user.update_last_seen()  # Оновлюємо дату останнього входу
+        db.session.commit()
+
+
+from PIL import Image
+def save_picture(form_picture):
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_fn = random_hex + f_ext
+    picture_path = os.path.join(app.root_path, 'static/profile_pics', picture_fn)
+
+    output_size = (150, 150)
+    img = Image.open(form_picture)
+    img.thumbnail(output_size)
+    img.save(picture_path)
+
+    return picture_fn
 
 @user_bp.route('/login', methods=['GET', 'POST'])
 def login():

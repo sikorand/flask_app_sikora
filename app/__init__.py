@@ -30,7 +30,7 @@ def create_app(config_name="config"):
     migrate.init_app(app, db)
 
     # Ініціалізація шляху для login_manager
-    login_manager.login_view = 'user.login'
+    login_manager.login_view = 'users.login'
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'warning'
 
