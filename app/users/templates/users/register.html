@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Register
+{% endblock %}
+
+{% block content %}
+    <div class="container mt-4">
+        <h2>Create an Account</h2>
+        <form method="POST" action="{{ url_for('users.register') }}">
+            {{ form.hidden_tag() }}
+
+            <div class="form-group">
+                <label for="username">Username</label>
+                {{ form.username(class="form-control", placeholder="Enter username") }}
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                {{ form.email(class="form-control", placeholder="Enter your email") }}
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                {{ form.password(class="form-control", placeholder="Enter password") }}
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                {{ form.confirm_password(class="form-control", placeholder="Confirm password") }}
+            </div>
+
+            <button type="submit" class="btn btn-primary">Register</button>
+        </form>
+
+        <hr>
+
+        <p>Already have an account? <a href="{{ url_for('users.login') }}">Login here</a>.</p>
+    </div>
+{% endblock %}
